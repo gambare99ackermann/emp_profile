@@ -8,8 +8,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the script and Excel file into the container
-COPY read_employee_excel.py .
-COPY employee_data.xlsx .
+COPY read_emp.py .
+COPY List.xlsx .
 
 # Run the script by default
 CMD ["python", "read_emp.py"]
