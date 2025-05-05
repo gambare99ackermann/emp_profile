@@ -1,25 +1,25 @@
+from flask import Flask, request, jsonify
 import pandas as pd
-import json
 
-def read_excel(file_path):
+app = Flask(__name__)
+
+@app.route("/enrich", methods=["POST"])
+def enrich_employee_profiles():
     try:
-        # Read the Excel file into a DataFrame
-        df = pd.read_excel(file_path)
+        file = request.files['file']
+        df = pd.read_excel(file)
 
-        # Ensure required columns are present
-        required_columns = ['Name','Company']
+        # Check required columns
+        required_columns = ['Name', 'Company']
         for col in required_columns:
             if col not in df.columns:
-                raise ValueError(f"Missing column: {col}")
+                return jsonify({"error": f"Missing column: {col}"}), 400
 
-        # Convert to list of dicts (JSON-compatible)
         data = df[required_columns].to_dict(orient='records')
-        return data
+        return jsonify(data)
 
     except Exception as e:
-        return {"error": str(e)}
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    file_path = "List.xlsx"  # Ensure this file is uploaded too
-    employee_data = read_excel(file_path)
-    print(json.dumps(employee_data, indent=2))
+    app.run(host='0.0.0.0', port=5000)
