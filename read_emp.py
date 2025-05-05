@@ -20,6 +20,6 @@ def read_excel(file_path):
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    file_path = "employee_data.xlsx"  # Ensure this file is uploaded too
+    file_path = "List.xlsx"  # Ensure this file is uploaded too
     employee_data = read_excel(file_path)
     print(json.dumps(employee_data, indent=2))
