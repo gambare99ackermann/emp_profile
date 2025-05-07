@@ -7,6 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY read_emp.py .
 
-EXPOSE 5000
-
 CMD ["python", "read_emp.py"]
