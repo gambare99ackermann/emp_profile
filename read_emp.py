@@ -1,25 +1,61 @@
-from flask import Flask, request, jsonify
+import os
 import pandas as pd
+import requests
 
-app = Flask(__name__)
-
-@app.route("/enrich", methods=["POST"])
-def enrich_employee_profiles():
+def enrich_employee_profiles(input_path, output_path, api_key):
     try:
-        file = request.files['file']
-        df = pd.read_excel(file)
+        df = pd.read_excel(input_path)
 
-        # Check required columns
         required_columns = ['Name', 'Company']
         for col in required_columns:
             if col not in df.columns:
-                return jsonify({"error": f"Missing column: {col}"}), 400
+                raise ValueError(f"Missing column: {col}")
 
-        data = df[required_columns].to_dict(orient='records')
-        return jsonify(data)
+        emails, titles = [], []
+
+        for _, row in df.iterrows():
+            name_parts = str(row['Name']).split()
+            if len(name_parts) < 2:
+                emails.append("")
+                titles.append("")
+                continue
+
+            first_name = name_parts[0]
+            last_name = name_parts[-1]
+            company = str(row['Company'])
+
+            response = requests.post(
+                "https://api.peopledatalabs.com/v5/person/enrich",
+                headers={"X-API-Key": api_key},
+                json={
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "company": company
+                }
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                emails.append(data.get('email', ''))
+                titles.append(data.get('job_title', ''))
+            else:
+                emails.append("")
+                titles.append("")
+
+        df['Email'] = emails
+        df['Job Title'] = titles
+        df.to_excel(output_path, index=False)
+        print(f"Enriched file saved to {output_path}")
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error: {e}")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    input_path = os.getenv("INPUT_FILE", "List.xlsx")
+    output_path = os.getenv("OUTPUT_FILE", "Enriched_List.xlsx")
+    pdl_api_key = os.getenv("PDL_API_KEY", "")
+
+    if not pdl_api_key:
+        raise ValueError("PDL_API_KEY environment variable is not set.")
+
+    enrich_employee_profiles(input_path, output_path, pdl_api_key)
